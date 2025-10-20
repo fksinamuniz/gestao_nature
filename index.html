@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Produtos de Suplementos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F8F5; /* Um cinza claro/creme para harmonizar com a logo */
+            color: #333;
+        }
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, .1);
+            border-left-color: #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .text-green-nature {
+            color: #4F6D57; /* Um verde mais escuro da sua logo */
+        }
+        .bg-green-nature-light {
+            background-color: #D9E4D4; /* Um verde claro para elementos de fundo */
+        }
+        .btn-primary {
+            background-color: #4F6D57; /* Verde principal para botões */
+            color: white;
+            font-weight: 600;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 300ms;
+        }
+        .btn-primary:hover {
+            background-color: #3A5240; /* Verde um pouco mais escuro no hover */
+        }
+        .btn-secondary {
+            background-color: #E0E0DF; /* Cinza claro para botões secundários */
+            color: #4F6D57;
+            font-weight: 600;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: background-color 300ms;
+        }
+        .btn-secondary:hover {
+            background-color: #D0D0CE;
+        }
+        .card {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        }
+        .input-field {
+            width: 100%;
+            padding: 0.625rem 1rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 0.5rem;
+            transition: border-color 300ms, box-shadow 300ms;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #4F6D57;
+            box-shadow: 0 0 0 2px rgba(79, 109, 87, 0.2);
+        }
+        .tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: #4F6D57;
+            border-bottom: 3px solid transparent;
+            transition: all 300ms;
+        }
+        .tab.active {
+            color: #3A5240;
+            border-bottom-color: #4F6D57;
+        }
+        .tab:hover {
+            background-color: #E0E0DF;
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Container Principal --><div class="container mx-auto p-4 md:p-8">
+        <header class="mb-4 text-center flex flex-col items-center">
+            <img src="https://i.ibb.co/C060V3y/image.png" alt="Nature, Viva Melhor Logo" class="h-24 mb-4">
+            <h1 class="text-3xl md:text-4xl font-bold text-green-nature">Gestão Integrada</h1>
+            <p class="text-gray-600 mt-2">Gerencie seu estoque, clientes, pedidos e finanças em um só lugar.</p>
+        </header>
+
+        <!-- Indicador de Status de Conexão -->
+        <div id="session-status" class="text-center text-sm text-gray-500 mb-8 p-2 bg-gray-100 rounded-lg">
+            Conectando...
+        </div>
+
+        <!-- Abas de Navegação -->
+        <div class="mb-8 border-b border-gray-200">
+            <nav class="flex justify-center -mb-px flex-wrap">
+                <button id="stock-tab" class="tab active" data-view="stock-view">Estoque</button>
+                <button id="clients-tab" class="tab" data-view="clients-view">Clientes</button>
+                <button id="orders-tab" class="tab" data-view="orders-view">Pedidos</button>
+                <button id="finance-tab" class="tab" data-view="finance-view">Financeiro</button>
+            </nav>
+        </div>
+        
+        <main>
+            <!-- Visão de Estoque -->
+            <div id="stock-view">
+                <!-- Painel de Métricas (Dashboard) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-8">
+                    <!-- Card: Total de Produtos --><div class="card">
+                        <h3 class="text-sm font-medium text-gray-500">Total de Produtos</h3>
+                        <p id="dashboard-product-count" class="text-2xl font-semibold text-gray-900 mt-1">0</p>
+                    </div>
+                    <!-- Card: Unidades em Estoque --><div class="card">
+                        <h3 class="text-sm font-medium text-gray-500">Unidades em Estoque</h3>
+                        <p id="dashboard-total-units" class="text-2xl font-semibold text-gray-900 mt-1">0</p>
+                    </div>
+                    <!-- Card: Custo do Estoque --><div class="card">
+                        <h3 class="text-sm font-medium text-gray-500">Custo do Estoque</h3>
+                        <p id="dashboard-inventory-cost" class="text-2xl font-semibold text-gray-900 mt-1">R$ 0,00</p>
+                    </div>
+                    <!-- Card: Receita Potencial --><div class="card">
+                        <h3 class="text-sm font-medium text-gray-500">Receita Potencial</h3>
+                        <p id="dashboard-potential-revenue" class="text-2xl font-semibold text-gray-900 mt-1">R$ 0,00</p>
+                    </div>
+                    <!-- Card: Lucro Potencial --><div class="card">
+                        <h3 class="text-sm font-medium text-gray-500">Lucro Potencial</h3>
+                        <p id="dashboard-potential-profit" class="text-2xl font-semibold text-green-600 mt-1">R$ 0,00</p>
+                    </div>
+                </div>
+
+                <!-- Painel de Ações do Estoque-->
+                <div class="card mb-6 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4">
+                    <div class="w-full md:w-1/3">
+                        <input type="text" id="searchInput" placeholder="Buscar por nome ou marca..." class="input-field">
+                    </div>
+                    <div class="flex flex-col sm:flex-row w-full md:w-auto space-y-2 sm:space-y-0 sm:space-x-2">
+                        <button id="exportStockBtn" class="btn-secondary">Exportar (CSV)</button>
+                        <button id="addProductBtn" class="btn-primary">
+                            Adicionar Produto
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabela de Produtos -->
+                <div class="card overflow-x-auto">
+                    <table class="w-full table-auto">
+                        <thead class="bg-green-nature-light border-b-2 border-gray-200">
+                            <tr>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Produto</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Marca</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Preço Compra</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Preço Venda</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Lucro/Unid.</th>
+                                <th class="p-4 text-center text-sm font-semibold text-gray-700">Estoque</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Validade</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Lucro Potencial</th>
+                                <th class="p-4 text-center text-sm font-semibold text-gray-700">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTableBody">
+                            <tr><td colspan="9" class="text-center p-8 text-gray-500">Carregando produtos...</td></tr>
+                        </tbody>
+                    </table>
+                     <div id="no-results-products" class="text-center p-8 text-gray-500 hidden">Nenhum produto encontrado.</div>
+                </div>
+            </div>
+
+            <!-- Visão de Clientes -->
+            <div id="clients-view" class="hidden">
+                 <!-- Painel de Ações dos Clientes-->
+                 <div class="card mb-6 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4">
+                    <div class="w-full md:w-1/3">
+                        <input type="text" id="clientSearchInput" placeholder="Buscar por nome ou telefone..." class="input-field">
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="exportClientsBtn" class="btn-secondary">Exportar (CSV)</button>
+                        <button id="addClientBtn" class="btn-primary">
+                            Adicionar Cliente
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabela de Clientes -->
+                <div class="card overflow-x-auto">
+                    <table class="w-full table-auto">
+                        <thead class="bg-green-nature-light border-b-2 border-gray-200">
+                            <tr>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Nome</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Telefone</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Produto Adquirido</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Valor Pago</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Pagamento</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Endereço</th>
+                                <th class="p-4 text-center text-sm font-semibold text-gray-700">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientsTableBody">
+                             <tr><td colspan="7" class="text-center p-8 text-gray-500">Carregando clientes...</td></tr>
+                        </tbody>
+                    </table>
+                    <div id="no-results-clients" class="text-center p-8 text-gray-500 hidden">Nenhum cliente encontrado.</div>
+                </div>
+            </div>
+            
+            <!-- Visão de Pedidos -->
+            <div id="orders-view" class="hidden">
+                 <!-- Painel de Ações dos Pedidos-->
+                 <div class="card mb-6 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4">
+                    <div class="w-full md:w-1/3">
+                        <input type="text" id="orderSearchInput" placeholder="Buscar por cliente ou produto..." class="input-field">
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="exportOrdersBtn" class="btn-secondary">Exportar (CSV)</button>
+                        <button id="addOrderBtn" class="btn-primary">
+                            Adicionar Pedido
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabela de Pedidos -->
+                <div class="card overflow-x-auto">
+                    <table class="w-full table-auto">
+                        <thead class="bg-green-nature-light border-b-2 border-gray-200">
+                            <tr>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Cliente</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Produto</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Valor Total</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Valor Pago</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Restante</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Data do Pedido</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Vencimento</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Status</th>
+                                <th class="p-4 text-center text-sm font-semibold text-gray-700">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody">
+                             <tr><td colspan="9" class="text-center p-8 text-gray-500">Carregando pedidos...</td></tr>
+                        </tbody>
+                    </table>
+                    <div id="no-results-orders" class="text-center p-8 text-gray-500 hidden">Nenhum pedido encontrado.</div>
+                </div>
+            </div>
+
+            <!-- Visão Financeira -->
+            <div id="finance-view" class="hidden">
+                 <!-- Painel de Métricas Financeiras -->
+                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-8">
+                    <div class="card">
+                        <h3 class="text-sm font-medium text-gray-500">Receita Bruta</h3>
+                        <p id="finance-gross-revenue" class="text-2xl font-semibold text-blue-600 mt-1">R$ 0,00</p>
+                    </div>
+                    <div class="card">
+                        <h3 class="text-sm font-medium text-gray-500">Custos Totais</h3>
+                        <p id="finance-total-costs" class="text-2xl font-semibold text-orange-600 mt-1">R$ 0,00</p>
+                    </div>
+                     <div class="card">
+                        <h3 class="text-sm font-medium text-gray-500">Lucro Bruto</h3>
+                        <p id="finance-gross-profit" class="text-2xl font-semibold text-green-600 mt-1">R$ 0,00</p>
+                    </div>
+                    <div class="card">
+                        <h3 class="text-sm font-medium text-gray-500">Valores Recebidos</h3>
+                        <p id="finance-amount-received" class="text-2xl font-semibold text-green-500 mt-1">R$ 0,00</p>
+                    </div>
+                    <div class="card">
+                        <h3 class="text-sm font-medium text-gray-500">Valores a Receber</h3>
+                        <p id="finance-amount-receivable" class="text-2xl font-semibold text-yellow-500 mt-1">R$ 0,00</p>
+                    </div>
+                </div>
+                 <!-- Painel de Ações Financeiras-->
+                 <div class="card mb-6 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4">
+                    <div class="w-full md:w-1/3">
+                        <input type="text" id="financeSearchInput" placeholder="Buscar por cliente ou produto..." class="input-field">
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="exportFinanceBtn" class="btn-secondary">Exportar (CSV)</button>
+                    </div>
+                </div>
+                <!-- Tabela de Transações -->
+                <div class="card overflow-x-auto">
+                    <table class="w-full table-auto">
+                        <thead class="bg-green-nature-light border-b-2 border-gray-200">
+                            <tr>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Data</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Cliente</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Produto</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Tipo</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Valor</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Custo</th>
+                                <th class="p-4 text-left text-sm font-semibold text-gray-700">Lucro</th>
+                            </tr>
+                        </thead>
+                        <tbody id="financeTableBody">
+                             <tr><td colspan="7" class="text-center p-8 text-gray-500">Carregando transações...</td></tr>
+                        </tbody>
+                    </table>
+                     <div id="no-results-finance" class="text-center p-8 text-gray-500 hidden">Nenhuma transação encontrada.</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal para Adicionar/Editar Produto --><div id="productModal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
+        <div class="bg-white w-full max-w-lg p-6 md:p-8 rounded-lg shadow-2xl m-4 transform transition-all scale-95 opacity-0" id="product-modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="productModalTitle" class="text-2xl font-bold text-gray-800">Adicionar Produto</h2>
+                <button id="closeProductModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </div>
+            <form id="productForm">
+                <input type="hidden" id="productId">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Nome do Produto --><div class="mb-4">
+                        <label for="productName" class="block text-sm font-medium text-gray-700 mb-1">Nome do Produto</label>
+                        <input type="text" id="productName" class="input-field" required>
+                    </div>
+                    <!-- Marca --><div class="mb-4">
+                        <label for="productBrand" class="block text-sm font-medium text-gray-700 mb-1">Marca</label>
+                        <input type="text" id="productBrand" class="input-field" required>
+                    </div>
+                    <!-- Preço de Compra --><div class="mb-4">
+                        <label for="purchasePrice" class="block text-sm font-medium text-gray-700 mb-1">Preço de Compra (R$)</label>
+                        <input type="number" id="purchasePrice" step="0.01" min="0" class="input-field" required>
+                    </div>
+                    <!-- Preço de Venda --><div class="mb-4">
+                        <label for="salePrice" class="block text-sm font-medium text-gray-700 mb-1">Preço de Venda (R$)</label>
+                        <input type="number" id="salePrice" step="0.01" min="0" class="input-field" required>
+                    </div>
+                    <!-- Estoque --><div class="mb-4">
+                        <label for="stock" class="block text-sm font-medium text-gray-700 mb-1">Quantidade em Estoque</label>
+                        <input type="number" id="stock" min="0" class="input-field" required>
+                    </div>
+                    <!-- Data de Validade --><div class="mb-4">
+                        <label for="expiryDate" class="block text-sm font-medium text-gray-700 mb-1">Data de Validade</label>
+                        <input type="date" id="expiryDate" class="input-field" required>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" id="saveProductBtn" class="btn-primary">
+                        Salvar Produto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal para Adicionar/Editar Cliente -->
+    <div id="clientModal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
+        <div class="bg-white w-full max-w-lg p-6 md:p-8 rounded-lg shadow-2xl m-4 transform transition-all scale-95 opacity-0" id="client-modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="clientModalTitle" class="text-2xl font-bold text-gray-800">Adicionar Cliente</h2>
+                <button id="closeClientModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </div>
+            <form id="clientForm">
+                <input type="hidden" id="clientId">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="mb-4">
+                        <label for="clientName" class="block text-sm font-medium text-gray-700 mb-1">Nome do Cliente</label>
+                        <input type="text" id="clientName" class="input-field" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="clientPhone" class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                        <input type="tel" id="clientPhone" class="input-field" required>
+                    </div>
+                     <div class="mb-4 md:col-span-2">
+                        <label for="clientProduct" class="block text-sm font-medium text-gray-700 mb-1">Produto Adquirido</label>
+                        <select id="clientProduct" class="input-field" required>
+                            <option value="">Selecione um produto</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="clientSaleValue" class="block text-sm font-medium text-gray-700 mb-1">Valor Pago (R$)</label>
+                        <input type="number" id="clientSaleValue" step="0.01" min="0" class="input-field" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="clientPaymentMethod" class="block text-sm font-medium text-gray-700 mb-1">Forma de Pagamento</label>
+                        <select id="clientPaymentMethod" class="input-field" required>
+                            <option>PIX</option>
+                            <option>Débito</option>
+                            <option>Crédito</option>
+                            <option>Dinheiro</option>
+                        </select>
+                    </div>
+                    <div class="mb-4 md:col-span-2">
+                         <label for="clientAddress" class="block text-sm font-medium text-gray-700 mb-1">Endereço de Entrega</label>
+                         <textarea id="clientAddress" rows="3" class="input-field"></textarea>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" id="saveClientBtn" class="btn-primary">
+                        Salvar Cliente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Adicionar/Editar Pedido -->
+    <div id="orderModal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
+        <div class="bg-white w-full max-w-lg p-6 md:p-8 rounded-lg shadow-2xl m-4 transform transition-all scale-95 opacity-0" id="order-modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="orderModalTitle" class="text-2xl font-bold text-gray-800">Adicionar Pedido</h2>
+                <button id="closeOrderModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </div>
+            <form id="orderForm">
+                <input type="hidden" id="orderId">
+                 <input type="hidden" id="orderProductStockId">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="mb-4">
+                        <label for="orderClient" class="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+                        <select id="orderClient" class="input-field" required></select>
+                    </div>
+                     <div class="mb-4">
+                        <label for="orderProduct" class="block text-sm font-medium text-gray-700 mb-1">Produto</label>
+                        <select id="orderProduct" class="input-field" required></select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="orderTotalValue" class="block text-sm font-medium text-gray-700 mb-1">Valor Total (R$)</label>
+                        <input type="number" id="orderTotalValue" step="0.01" min="0" class="input-field" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="orderAmountPaid" class="block text-sm font-medium text-gray-700 mb-1">Valor de Entrada (R$)</label>
+                        <input type="number" id="orderAmountPaid" step="0.01" min="0" class="input-field" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="orderRemaining" class="block text-sm font-medium text-gray-700 mb-1">Valor Restante (R$)</label>
+                        <input type="number" id="orderRemaining" step="0.01" min="0" class="input-field bg-gray-100" readonly>
+                    </div>
+                     <div class="mb-4">
+                        <label for="orderDueDate" class="block text-sm font-medium text-gray-700 mb-1">Data de Vencimento</label>
+                        <input type="date" id="orderDueDate" class="input-field">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" id="saveOrderBtn" class="btn-primary">
+                        Salvar Pedido
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+     <!-- Modal para Gerenciar Recebimento -->
+    <div id="paymentModal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
+        <div class="bg-white w-full max-w-md p-6 md:p-8 rounded-lg shadow-2xl m-4 transform transition-all scale-95 opacity-0" id="payment-modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="paymentModalTitle" class="text-2xl font-bold text-gray-800">Gerenciar Recebimento</h2>
+                <button id="closePaymentModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </div>
+            <form id="paymentForm">
+                <input type="hidden" id="paymentOrderId">
+                <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                    <p class="text-sm text-gray-600">Cliente: <span id="paymentClientName" class="font-semibold"></span></p>
+                    <p class="text-sm text-gray-600">Valor Total: <span id="paymentTotalValue" class="font-semibold"></span></p>
+                    <p class="text-sm text-green-600">Valor Pago: <span id="paymentAmountPaid" class="font-semibold"></span></p>
+                    <p class="text-sm text-red-600">Valor Restante: <span id="paymentRemainingValue" class="font-semibold"></span></p>
+                </div>
+                <div class="grid grid-cols-1 gap-4">
+                    <div class="mb-2">
+                        <label for="paymentAmountReceived" class="block text-sm font-medium text-gray-700 mb-1">Registrar Novo Pagamento (R$)</label>
+                        <input type="number" id="paymentAmountReceived" step="0.01" min="0" class="input-field" placeholder="0.00">
+                    </div>
+                    <div class="mb-2">
+                        <label for="paymentStatus" class="block text-sm font-medium text-gray-700 mb-1">Situação</label>
+                        <select id="paymentStatus" class="input-field" required>
+                            <option>A receber</option>
+                            <option>Recebido</option>
+                            <option>Atraso</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                         <label for="paymentNotes" class="block text-sm font-medium text-gray-700 mb-1">Observação</label>
+                         <textarea id="paymentNotes" rows="3" class="input-field"></textarea>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" id="savePaymentBtn" class="btn-primary">
+                        Salvar Recebimento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Custom confirmation dialog --><div id="confirmDialog" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden">
+        <div class="card w-full max-w-sm m-4">
+            <h3 class="text-lg font-semibold mb-4 text-gray-800" id="confirmTitle">Confirmar Ação</h3>
+            <p id="confirmMessage" class="text-gray-700">Você tem certeza?</p>
+            <div class="mt-6 flex justify-end space-x-4">
+                <button id="confirmCancel" class="btn-secondary">Cancelar</button>
+                <button id="confirmOk" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-300">Deletar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Firebase Config ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "YOUR_API_KEY", authDomain: "YOUR_AUTH_DOMAIN", projectId: "YOUR_PROJECT_ID" };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // --- Firebase Initialization ---
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // --- Global State ---
+        let productsCollectionRef, clientsCollectionRef, ordersCollectionRef;
+        let unsubscribeProducts, unsubscribeClients, unsubscribeOrders;
+        let allProducts = [];
+        let allClients = [];
+        let allOrders = [];
+
+        // --- UI Elements ---
+        const sessionStatusDiv = document.getElementById('session-status');
+        const stockTab = document.getElementById('stock-tab');
+        const clientsTab = document.getElementById('clients-tab');
+        const ordersTab = document.getElementById('orders-tab');
+        const financeTab = document.getElementById('finance-tab');
+        const stockView = document.getElementById('stock-view');
+        const clientsView = document.getElementById('clients-view');
+        const ordersView = document.getElementById('orders-view');
+        const financeView = document.getElementById('finance-view');
+
+        // Product UI
+        const addProductBtn = document.getElementById('addProductBtn');
+        const productModal = document.getElementById('productModal');
+        const productModalContent = document.getElementById('product-modal-content');
+        const closeProductModalBtn = document.getElementById('closeProductModalBtn');
+        const productForm = document.getElementById('productForm');
+        const productModalTitle = document.getElementById('productModalTitle');
+        const saveProductBtn = document.getElementById('saveProductBtn');
+        const productsTableBody = document.getElementById('productsTableBody');
+        const searchInput = document.getElementById('searchInput');
+        const noResultsProductsDiv = document.getElementById('no-results-products');
+        const exportStockBtn = document.getElementById('exportStockBtn');
+
+        // Client UI
+        const addClientBtn = document.getElementById('addClientBtn');
+        const clientModal = document.getElementById('clientModal');
+        const clientModalContent = document.getElementById('client-modal-content');
+        const closeClientModalBtn = document.getElementById('closeClientModalBtn');
+        const clientForm = document.getElementById('clientForm');
+        const clientModalTitle = document.getElementById('clientModalTitle');
+        const saveClientBtn = document.getElementById('saveClientBtn');
+        const clientsTableBody = document.getElementById('clientsTableBody');
+        const clientSearchInput = document.getElementById('clientSearchInput');
+        const noResultsClientsDiv = document.getElementById('no-results-clients');
+        const clientProductSelect = document.getElementById('clientProduct');
+        const exportClientsBtn = document.getElementById('exportClientsBtn');
+
+        // Order UI
+        const addOrderBtn = document.getElementById('addOrderBtn');
+        const orderModal = document.getElementById('orderModal');
+        const orderModalContent = document.getElementById('order-modal-content');
+        const closeOrderModalBtn = document.getElementById('closeOrderModalBtn');
+        const orderForm = document.getElementById('orderForm');
+        const saveOrderBtn = document.getElementById('saveOrderBtn');
+        const ordersTableBody = document.getElementById('ordersTableBody');
+        const orderSearchInput = document.getElementById('orderSearchInput');
+        const noResultsOrdersDiv = document.getElementById('no-results-orders');
+        const exportOrdersBtn = document.getElementById('exportOrdersBtn');
+        const orderClientSelect = document.getElementById('orderClient');
+        const orderProductSelect = document.getElementById('orderProduct');
+        
+        // Finance UI
+        const financeGrossRevenue = document.getElementById('finance-gross-revenue');
+        const financeTotalCosts = document.getElementById('finance-total-costs');
+        const financeGrossProfit = document.getElementById('finance-gross-profit');
+        const financeAmountReceived = document.getElementById('finance-amount-received');
+        const financeAmountReceivable = document.getElementById('finance-amount-receivable');
+        const financeTableBody = document.getElementById('financeTableBody');
+        const financeSearchInput = document.getElementById('financeSearchInput');
+        const noResultsFinanceDiv = document.getElementById('no-results-finance');
+        const exportFinanceBtn = document.getElementById('exportFinanceBtn');
+
+
+        // Payment UI
+        const paymentModal = document.getElementById('paymentModal');
+        const paymentModalContent = document.getElementById('payment-modal-content');
+        const closePaymentModalBtn = document.getElementById('closePaymentModalBtn');
+        const paymentForm = document.getElementById('paymentForm');
+        const savePaymentBtn = document.getElementById('savePaymentBtn');
+        
+        // Common UI
+        const confirmDialog = document.getElementById('confirmDialog');
+        const confirmOk = document.getElementById('confirmOk');
+        const confirmCancel = document.getElementById('confirmCancel');
+        const confirmMessage = document.getElementById('confirmMessage');
+        
+        // --- Dashboard UI Elements ---
+        const dashboardProductCount = document.getElementById('dashboard-product-count');
+        const dashboardTotalUnits = document.getElementById('dashboard-total-units');
+        const dashboardInventoryCost = document.getElementById('dashboard-inventory-cost');
+        const dashboardPotentialRevenue = document.getElementById('dashboard-potential-revenue');
+        const dashboardPotentialProfit = document.getElementById('dashboard-potential-profit');
+
+
+        // --- View Management ---
+        const switchView = (viewId) => {
+            stockView.classList.add('hidden');
+            clientsView.classList.add('hidden');
+            ordersView.classList.add('hidden');
+            financeView.classList.add('hidden');
+            stockTab.classList.remove('active');
+            clientsTab.classList.remove('active');
+            ordersTab.classList.remove('active');
+            financeTab.classList.remove('active');
+
+            document.getElementById(viewId).classList.remove('hidden');
+            document.getElementById(viewId.replace('-view', '-tab')).classList.add('active');
+        };
+
+        // --- Modal Management ---
+        const openModal = (modal, content) => {
+            modal.classList.remove('hidden');
+            setTimeout(() => { content.classList.remove('scale-95', 'opacity-0'); }, 10);
+        };
+        const closeModal = (modal, content, form) => {
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                if(form) form.reset();
+            }, 200);
+        };
+        
+        // --- Populate Selects ---
+        const populateSelect = (selectElement, data, valueField, textField) => {
+            selectElement.innerHTML = `<option value="">Selecione uma opção</option>`;
+            data.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item[valueField];
+                option.dataset.full = JSON.stringify(item); // Store full object
+                option.textContent = item[textField];
+                selectElement.appendChild(option);
+            });
+        };
+
+        // --- Confirmation Dialog ---
+        let confirmCallback = null;
+        const hideConfirmDialog = () => { confirmDialog.classList.add('hidden'); confirmCallback = null; };
+        const showConfirmDialog = (message, onConfirm) => { confirmMessage.textContent = message; confirmCallback = onConfirm; confirmDialog.classList.remove('hidden'); };
+        const handleConfirmClick = () => { if (typeof confirmCallback === 'function') { confirmCallback(); } hideConfirmDialog(); };
+
+        // --- Data Formatting & Calculations ---
+        const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(value) || 0);
+        const formatDate = (dateString) => { if (!dateString) return 'N/A'; const [year, month, day] = dateString.split('-'); return `${day}/${month}/${year}`; };
+        
+        const calculateOrderStatus = (order) => {
+            const total = parseFloat(order.totalValue) || 0;
+            const paid = parseFloat(order.amountPaid) || 0;
+            if (paid >= total) return { text: 'Recebido', color: 'bg-green-100 text-green-800' };
+            if (order.dueDate) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const dueDate = new Date(order.dueDate + 'T00:00:00-03:00'); // Adjust for timezone
+                if (today > dueDate) return { text: 'Atraso', color: 'bg-red-100 text-red-800' };
+            }
+            return { text: 'A receber', color: 'bg-yellow-100 text-yellow-800' };
+        };
+        
+        // --- Dashboard Logic ---
+        const updateDashboard = (products) => {
+            if (!products || products.length === 0) {
+                dashboardProductCount.textContent = '0'; dashboardTotalUnits.textContent = '0';
+                dashboardInventoryCost.textContent = formatCurrency(0); dashboardPotentialRevenue.textContent = formatCurrency(0);
+                dashboardPotentialProfit.textContent = formatCurrency(0); return;
+            }
+            const totalUnits = products.reduce((sum, p) => sum + (parseInt(p.stock, 10) || 0), 0);
+            const inventoryCost = products.reduce((sum, p) => sum + ((parseFloat(p.purchasePrice) || 0) * (parseInt(p.stock, 10) || 0)), 0);
+            const potentialRevenue = products.reduce((sum, p) => sum + ((parseFloat(p.salePrice) || 0) * (parseInt(p.stock, 10) || 0)), 0);
+            const potentialProfit = potentialRevenue - inventoryCost;
+            dashboardProductCount.textContent = products.length; dashboardTotalUnits.textContent = totalUnits;
+            dashboardInventoryCost.textContent = formatCurrency(inventoryCost); dashboardPotentialRevenue.textContent = formatCurrency(potentialRevenue);
+            dashboardPotentialProfit.textContent = formatCurrency(potentialProfit);
+        };
+        
+        const updateFinanceDashboard = (orders, products) => {
+            if(!orders || !products){ return; }
+
+            let grossRevenue = 0;
+            let totalCosts = 0;
+            let amountReceived = 0;
+
+            orders.forEach(order => {
+                const product = products.find(p => p.id === order.productId);
+                grossRevenue += parseFloat(order.totalValue) || 0;
+                amountReceived += parseFloat(order.amountPaid) || 0;
+                if(product){
+                    totalCosts += parseFloat(product.purchasePrice) || 0;
+                }
+            });
+            
+            const grossProfit = grossRevenue - totalCosts;
+            const amountReceivable = grossRevenue - amountReceived;
+
+            financeGrossRevenue.textContent = formatCurrency(grossRevenue);
+            financeTotalCosts.textContent = formatCurrency(totalCosts);
+            financeGrossProfit.textContent = formatCurrency(grossProfit);
+            financeAmountReceived.textContent = formatCurrency(amountReceived);
+            financeAmountReceivable.textContent = formatCurrency(amountReceivable);
+        };
+
+
+        // --- Render Logic ---
+        const renderProducts = (products) => {
+            productsTableBody.innerHTML = '';
+            noResultsProductsDiv.classList.add('hidden');
+            if (products.length === 0) {
+                 productsTableBody.innerHTML = '<tr><td colspan="9" class="text-center p-8 text-gray-500">Nenhum produto cadastrado.</td></tr>';
+                return;
+            }
+            products.forEach(product => {
+                const purchasePrice = parseFloat(product.purchasePrice) || 0;
+                const salePrice = parseFloat(product.salePrice) || 0;
+                const stock = parseInt(product.stock, 10) || 0;
+                const unitProfit = salePrice - purchasePrice;
+                const potentialProfit = unitProfit * stock;
+                const tr = document.createElement('tr');
+                tr.className = 'border-b hover:bg-gray-50';
+                tr.innerHTML = `
+                    <td class="p-4 text-gray-700">${product.name}</td>
+                    <td class="p-4 text-gray-700">${product.brand}</td>
+                    <td class="p-4 text-gray-700">${formatCurrency(purchasePrice)}</td>
+                    <td class="p-4 text-gray-700">${formatCurrency(salePrice)}</td>
+                    <td class="p-4 font-medium ${unitProfit >= 0 ? 'text-green-600' : 'text-red-600'}">${formatCurrency(unitProfit)}</td>
+                    <td class="p-4 text-center text-gray-700">${stock}</td>
+                    <td class="p-4 text-gray-700">${formatDate(product.expiryDate)}</td>
+                    <td class="p-4 font-medium ${potentialProfit >= 0 ? 'text-green-600' : 'text-red-600'}">${formatCurrency(potentialProfit)}</td>
+                    <td class="p-4 text-center">
+                        <button class="edit-product-btn text-green-nature hover:text-indigo-800 p-1" data-id="${product.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+                        </button>
+                        <button class="delete-product-btn text-red-600 hover:text-red-800 p-1" data-id="${product.id}">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </td>
+                `;
+                productsTableBody.appendChild(tr);
+            });
+        };
+        const filterProducts = () => {
+             const searchTerm = searchInput.value.toLowerCase();
+            const filtered = allProducts.filter(p => p.name.toLowerCase().includes(searchTerm) || p.brand.toLowerCase().includes(searchTerm));
+            renderProducts(filtered);
+             if(filtered.length === 0 && allProducts.length > 0) { noResultsProductsDiv.classList.remove('hidden'); } else { noResultsProductsDiv.classList.add('hidden');}
+        };
+
+        const renderClients = (clients) => {
+            clientsTableBody.innerHTML = '';
+            noResultsClientsDiv.classList.add('hidden');
+            if (clients.length === 0) {
+                clientsTableBody.innerHTML = '<tr><td colspan="7" class="text-center p-8 text-gray-500">Nenhum cliente cadastrado.</td></tr>';
+                return;
+            }
+            clients.forEach(client => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b hover:bg-gray-50';
+                tr.innerHTML = `
+                    <td class="p-4 text-gray-700">${client.name}</td>
+                    <td class="p-4 text-gray-700">${client.phone}</td>
+                    <td class="p-4 text-gray-700">${client.product}</td>
+                    <td class="p-4 text-gray-700">${formatCurrency(client.saleValue)}</td>
+                    <td class="p-4 text-gray-700">${client.paymentMethod}</td>
+                    <td class="p-4 text-gray-700 truncate max-w-xs">${client.address}</td>
+                    <td class="p-4 text-center">
+                        <button class="edit-client-btn text-green-nature hover:text-indigo-800 p-1" data-id="${client.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+                        </button>
+                        <button class="delete-client-btn text-red-600 hover:text-red-800 p-1" data-id="${client.id}">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </td>
+                `;
+                clientsTableBody.appendChild(tr);
+            });
+        };
+        const filterClients = () => {
+            const searchTerm = clientSearchInput.value.toLowerCase();
+            const filtered = allClients.filter(c => c.name.toLowerCase().includes(searchTerm) || c.phone.toLowerCase().includes(searchTerm));
+            renderClients(filtered);
+            if(filtered.length === 0 && allClients.length > 0) { noResultsClientsDiv.classList.remove('hidden'); } else { noResultsClientsDiv.classList.add('hidden');}
+        };
+        
+        const renderOrders = (orders) => {
+            ordersTableBody.innerHTML = '';
+            noResultsOrdersDiv.classList.add('hidden');
+            if (orders.length === 0) {
+                ordersTableBody.innerHTML = '<tr><td colspan="9" class="text-center p-8 text-gray-500">Nenhum pedido cadastrado.</td></tr>';
+                return;
+            }
+            orders.forEach(order => {
+                const total = parseFloat(order.totalValue) || 0;
+                const paid = parseFloat(order.amountPaid) || 0;
+                const remaining = total - paid;
+                const status = calculateOrderStatus(order);
+                const tr = document.createElement('tr');
+                tr.className = 'border-b hover:bg-gray-50';
+                tr.innerHTML = `
+                    <td class="p-4 text-gray-700">${order.clientName}</td>
+                    <td class="p-4 text-gray-700">${order.productName}</td>
+                    <td class="p-4 text-gray-700">${formatCurrency(total)}</td>
+                    <td class="p-4 text-green-600 font-medium">${formatCurrency(paid)}</td>
+                    <td class="p-4 text-red-600 font-medium">${formatCurrency(remaining)}</td>
+                    <td class="p-4 text-gray-700">${formatDate(order.orderDate)}</td>
+                    <td class="p-4 text-gray-700">${formatDate(order.dueDate)}</td>
+                    <td class="p-4"><span class="status-badge ${status.color}">${status.text}</span></td>
+                    <td class="p-4 text-center">
+                        <button class="payment-order-btn text-blue-600 hover:text-blue-800 p-1" data-id="${order.id}" title="Gerenciar Recebimento">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" /><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd" /></svg>
+                        </button>
+                        <button class="delete-order-btn text-red-600 hover:text-red-800 p-1" data-id="${order.id}" data-product-id="${order.productId}" title="Deletar Pedido">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </td>
+                `;
+                ordersTableBody.appendChild(tr);
+            });
+        };
+        const filterOrders = () => {
+            const searchTerm = orderSearchInput.value.toLowerCase();
+            const filtered = allOrders.filter(o => o.clientName.toLowerCase().includes(searchTerm) || o.productName.toLowerCase().includes(searchTerm));
+            renderOrders(filtered);
+            if(filtered.length === 0 && allOrders.length > 0) { noResultsOrdersDiv.classList.remove('hidden'); } else { noResultsOrdersDiv.classList.add('hidden');}
+        };
+
+        const renderFinanceTransactions = (orders, products) => {
+            financeTableBody.innerHTML = '';
+            noResultsFinanceDiv.classList.add('hidden');
+            
+            if (orders.length === 0) {
+                financeTableBody.innerHTML = '<tr><td colspan="7" class="text-center p-8 text-gray-500">Nenhuma transação encontrada.</td></tr>';
+                return;
+            }
+
+            const transactions = orders.map(order => {
+                const product = products.find(p => p.id === order.productId);
+                const cost = product ? (parseFloat(product.purchasePrice) || 0) : 0;
+                const total = parseFloat(order.totalValue) || 0;
+                const profit = total - cost;
+                return {
+                    date: order.orderDate,
+                    client: order.clientName,
+                    product: order.productName,
+                    type: 'Venda',
+                    value: total,
+                    cost: cost,
+                    profit: profit
+                };
+            });
+
+            const searchTerm = financeSearchInput.value.toLowerCase();
+            const filteredTransactions = transactions.filter(t => t.client.toLowerCase().includes(searchTerm) || t.product.toLowerCase().includes(searchTerm));
+
+             if (filteredTransactions.length === 0 && searchTerm.length > 0) {
+                noResultsFinanceDiv.classList.remove('hidden');
+             } else {
+                noResultsFinanceDiv.classList.add('hidden');
+             }
+
+            (filteredTransactions.length > 0 ? filteredTransactions : transactions).forEach(t => {
+                 const tr = document.createElement('tr');
+                tr.className = 'border-b hover:bg-gray-50';
+                tr.innerHTML = `
+                    <td class="p-4 text-gray-700">${formatDate(t.date)}</td>
+                    <td class="p-4 text-gray-700">${t.client}</td>
+                    <td class="p-4 text-gray-700">${t.product}</td>
+                    <td class="p-4 text-gray-700"><span class="bg-blue-100 text-blue-800 status-badge">Venda</span></td>
+                    <td class="p-4 font-medium text-gray-900">${formatCurrency(t.value)}</td>
+                    <td class="p-4 font-medium text-orange-600">${formatCurrency(t.cost)}</td>
+                    <td class="p-4 font-medium text-green-600">${formatCurrency(t.profit)}</td>
+                `;
+                financeTableBody.appendChild(tr);
+            });
+        };
+
+
+        // --- Firestore CRUD ---
+        const handleProductFormSubmit = async (e) => {
+             e.preventDefault();
+            const productId = document.getElementById('productId').value;
+            const productData = {
+                name: document.getElementById('productName').value, brand: document.getElementById('productBrand').value, purchasePrice: document.getElementById('purchasePrice').value,
+                salePrice: document.getElementById('salePrice').value, stock: document.getElementById('stock').value, expiryDate: document.getElementById('expiryDate').value,
+            };
+            try {
+                if (productId) { await updateDoc(doc(productsCollectionRef, productId), productData); } else { await addDoc(productsCollectionRef, productData); }
+                closeModal(productModal, productModalContent, productForm);
+            } catch (error) { console.error("Error saving product: ", error); }
+        };
+
+        const handleClientFormSubmit = async (e) => {
+            e.preventDefault();
+            const clientId = document.getElementById('clientId').value;
+            const clientData = {
+                name: document.getElementById('clientName').value, phone: document.getElementById('clientPhone').value, product: document.getElementById('clientProduct').value,
+                saleValue: document.getElementById('clientSaleValue').value, paymentMethod: document.getElementById('clientPaymentMethod').value, address: document.getElementById('clientAddress').value,
+            };
+            try {
+                if (clientId) { await updateDoc(doc(clientsCollectionRef, clientId), clientData); } else { await addDoc(clientsCollectionRef, clientData); }
+                closeModal(clientModal, clientModalContent, clientForm);
+            } catch (error) { console.error("Error saving client: ", error); }
+        };
+
+        const handleOrderFormSubmit = async (e) => {
+            e.preventDefault();
+            const selectedClientOption = orderClient.options[orderClient.selectedIndex];
+            const selectedProductOption = orderProduct.options[orderProduct.selectedIndex];
+            if (!selectedClientOption.value || !selectedProductOption.value) { alert("Por favor, selecione um cliente e um produto."); return; }
+
+            const client = JSON.parse(selectedClientOption.dataset.full);
+            const product = JSON.parse(selectedProductOption.dataset.full);
+            
+            const orderData = {
+                clientId: client.id,
+                clientName: client.name,
+                productId: product.id,
+                productName: product.name,
+                totalValue: document.getElementById('orderTotalValue').value,
+                amountPaid: document.getElementById('orderAmountPaid').value,
+                orderDate: new Date().toISOString().split('T')[0],
+                dueDate: document.getElementById('orderDueDate').value,
+                paymentStatus: 'A receber', // Initial status
+                notes: ''
+            };
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const productRef = doc(productsCollectionRef, product.id);
+                    const productDoc = await transaction.get(productRef);
+                    if (!productDoc.exists()) { throw "Produto não encontrado!"; }
+                    
+                    const newStock = productDoc.data().stock - 1;
+                    if (newStock < 0) { throw "Produto sem estoque!"; }
+                    
+                    transaction.update(productRef, { stock: newStock });
+                    transaction.set(doc(ordersCollectionRef), orderData);
+                });
+                closeModal(orderModal, orderModalContent, orderForm);
+            } catch (error) { console.error("Erro ao salvar pedido: ", error); alert("Erro ao salvar pedido: " + error); }
+        };
+        
+        const handlePaymentFormSubmit = async (e) => {
+            e.preventDefault();
+            const orderId = document.getElementById('paymentOrderId').value;
+            const order = allOrders.find(o => o.id === orderId);
+            if(!order) return;
+
+            const received = parseFloat(document.getElementById('paymentAmountReceived').value) || 0;
+            const currentPaid = parseFloat(order.amountPaid) || 0;
+            const newAmountPaid = currentPaid + received;
+
+            const paymentData = {
+                amountPaid: newAmountPaid,
+                paymentStatus: document.getElementById('paymentStatus').value,
+                notes: document.getElementById('paymentNotes').value,
+            };
+            
+            try {
+                await updateDoc(doc(ordersCollectionRef, orderId), paymentData);
+                closeModal(paymentModal, paymentModalContent, paymentForm);
+            } catch(error) { console.error("Erro ao salvar recebimento: ", error); alert("Erro ao salvar recebimento."); }
+        };
+
+        const handleTableClick = (e) => {
+            const target = e.target.closest('button');
+            if (!target) return;
+            const id = target.dataset.id;
+            
+            if (target.classList.contains('edit-product-btn')) {
+                const product = allProducts.find(p => p.id === id);
+                if (product) {
+                    productModalTitle.textContent = "Editar Produto"; saveProductBtn.textContent = "Salvar Alterações";
+                    document.getElementById('productId').value = product.id; document.getElementById('productName').value = product.name;
+                    document.getElementById('productBrand').value = product.brand; document.getElementById('purchasePrice').value = product.purchasePrice;
+                    document.getElementById('salePrice').value = product.salePrice; document.getElementById('stock').value = product.stock;
+                    document.getElementById('expiryDate').value = product.expiryDate;
+                    openModal(productModal, productModalContent);
+                }
+            } else if (target.classList.contains('delete-product-btn')) {
+                showConfirmDialog("Tem certeza que deseja deletar este produto? Esta ação não pode ser desfeita.", async () => {
+                    try { await deleteDoc(doc(productsCollectionRef, id)); } catch (error) { console.error("Error deleting product: ", error); }
+                });
+            } else if (target.classList.contains('edit-client-btn')) {
+                const client = allClients.find(c => c.id === id);
+                if (client) {
+                    clientModalTitle.textContent = "Editar Cliente"; saveClientBtn.textContent = "Salvar Alterações";
+                    populateSelect(clientProductSelect, allProducts, 'name', 'name');
+                    document.getElementById('clientId').value = client.id; document.getElementById('clientName').value = client.name;
+                    document.getElementById('clientPhone').value = client.phone; document.getElementById('clientProduct').value = client.product;
+                    document.getElementById('clientSaleValue').value = client.saleValue; document.getElementById('clientPaymentMethod').value = client.paymentMethod;
+                    document.getElementById('clientAddress').value = client.address;
+                    openModal(clientModal, clientModalContent);
+                }
+            } else if (target.classList.contains('delete-client-btn')) {
+                showConfirmDialog("Tem certeza que deseja deletar este cliente? Esta ação não pode ser desfeita.", async () => {
+                    try { await deleteDoc(doc(clientsCollectionRef, id)); } catch (error) { console.error("Error deleting client: ", error); }
+                });
+            } else if (target.classList.contains('payment-order-btn')) {
+                const order = allOrders.find(o => o.id === id);
+                if(order){
+                    document.getElementById('paymentOrderId').value = order.id;
+                    document.getElementById('paymentClientName').textContent = order.clientName;
+                    const total = parseFloat(order.totalValue) || 0;
+                    const paid = parseFloat(order.amountPaid) || 0;
+                    document.getElementById('paymentTotalValue').textContent = formatCurrency(total);
+                    document.getElementById('paymentAmountPaid').textContent = formatCurrency(paid);
+                    document.getElementById('paymentRemainingValue').textContent = formatCurrency(total - paid);
+                    document.getElementById('paymentStatus').value = calculateOrderStatus(order).text;
+                    document.getElementById('paymentNotes').value = order.notes || '';
+                    openModal(paymentModal, paymentModalContent);
+                }
+            } else if (target.classList.contains('delete-order-btn')) {
+                showConfirmDialog("Tem certeza? Deletar um pedido irá retornar o produto ao estoque.", async () => {
+                    try {
+                        await runTransaction(db, async (transaction) => {
+                            const orderRef = doc(ordersCollectionRef, id);
+                            const productRef = doc(productsCollectionRef, target.dataset.productId);
+
+                            const productDoc = await transaction.get(productRef);
+                             if (!productDoc.exists()) { throw "Produto do pedido não encontrado para restock!"; }
+                            const newStock = productDoc.data().stock + 1;
+                            
+                            transaction.update(productRef, { stock: newStock });
+                            transaction.delete(orderRef);
+                        });
+                    } catch (error) { console.error("Error deleting order: ", error); alert("Erro ao deletar pedido: " + error); }
+                });
+            }
+        };
+        
+        // --- CSV Export ---
+        const exportToCsv = (filename, rows) => {
+            if (!rows || rows.length === 0) {
+                alert("Não há dados para exportar.");
+                return;
+            }
+            const separator = ',';
+            const keys = Object.keys(rows[0]);
+            const csvContent =
+                keys.join(separator) +
+                '\n' +
+                rows.map(row => {
+                    return keys.map(k => {
+                        let cell = row[k] === null || row[k] === undefined ? '' : row[k];
+                        cell = cell.toString().replace(/"/g, '""');
+                        if (cell.search(/("|,|\n)/g) >= 0) {
+                            cell = `"${cell}"`;
+                        }
+                        return cell;
+                    }).join(separator);
+                }).join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        };
+
+        // --- Authentication & Data Fetching ---
+        const setupFirestoreListeners = () => {
+            if (unsubscribeProducts) unsubscribeProducts(); 
+            if (unsubscribeClients) unsubscribeClients();
+            if (unsubscribeOrders) unsubscribeOrders();
+
+            productsCollectionRef = collection(db, `artifacts/${appId}/public/data/products`);
+            clientsCollectionRef = collection(db, `artifacts/${appId}/public/data/clients`);
+            ordersCollectionRef = collection(db, `artifacts/${appId}/public/data/orders`);
+            
+            unsubscribeProducts = onSnapshot(productsCollectionRef, (snapshot) => {
+                allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                updateDashboard(allProducts);
+                filterProducts();
+                updateFinanceDashboard(allOrders, allProducts);
+                renderFinanceTransactions(allOrders, allProducts);
+            }, (error) => { console.error("Error fetching products: ", error); });
+
+            unsubscribeClients = onSnapshot(clientsCollectionRef, (snapshot) => {
+                allClients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                filterClients();
+            }, (error) => { console.error("Error fetching clients: ", error); });
+
+             unsubscribeOrders = onSnapshot(ordersCollectionRef, (snapshot) => {
+                allOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                filterOrders();
+                updateFinanceDashboard(allOrders, allProducts);
+                renderFinanceTransactions(allOrders, allProducts);
+            }, (error) => { console.error("Error fetching orders: ", error); });
+        };
+        
+        const initialize = async () => {
+             try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) { await signInWithCustomToken(auth, __initial_auth_token); } else { await signInAnonymously(auth); }
+                
+                if (!auth.currentUser) throw new Error("Authentication failed.");
+                
+                setupFirestoreListeners();
+                sessionStatusDiv.innerHTML = `
+                    <span class="font-semibold text-green-600">? Conectado</span> | ID Compartilhado do App: <span class="font-mono bg-gray-200 px-1 rounded">${appId}</span>
+                    <p class="text-xs text-gray-400 mt-1">Seus dados são compartilhados e salvos para todos que usam este app.</p>
+                `;
+            } catch (error) { 
+                console.error("Authentication or Initialization Error:", error); 
+                 sessionStatusDiv.innerHTML = `
+                    <span class="font-semibold text-red-600">? Erro de Conexão</span>
+                    <p class="text-xs text-gray-400 mt-1">Não foi possível salvar os dados. Por favor, atualize a página.</p>
+                `;
+            }
+        };
+
+        // --- Event Listeners ---
+        stockTab.addEventListener('click', () => switchView('stock-view'));
+        clientsTab.addEventListener('click', () => switchView('clients-view'));
+        ordersTab.addEventListener('click', () => switchView('orders-view'));
+        financeTab.addEventListener('click', () => switchView('finance-view'));
+        
+        addProductBtn.addEventListener('click', () => { 
+            productForm.reset(); 
+            productModalTitle.textContent = "Adicionar Produto";
+            saveProductBtn.textContent = "Salvar Produto";
+            document.getElementById('productId').value = '';
+            openModal(productModal, productModalContent); 
+        });
+        addClientBtn.addEventListener('click', () => { 
+            clientForm.reset(); 
+            clientModalTitle.textContent = "Adicionar Cliente";
+            saveClientBtn.textContent = "Salvar Cliente";
+            document.getElementById('clientId').value = '';
+            populateSelect(clientProductSelect, allProducts, 'name', 'name');
+            openModal(clientModal, clientModalContent); 
+        });
+        addOrderBtn.addEventListener('click', () => { 
+            orderForm.reset();
+            populateSelect(orderClientSelect, allClients, 'id', 'name');
+            populateSelect(orderProductSelect, allProducts.filter(p => p.stock > 0), 'id', 'name');
+            openModal(orderModal, orderModalContent); 
+        });
+        
+        orderProductSelect.addEventListener('change', (e) => {
+            const selectedOption = e.target.options[e.target.selectedIndex];
+            if (selectedOption.dataset.full) {
+                const product = JSON.parse(selectedOption.dataset.full);
+                document.getElementById('orderTotalValue').value = product.salePrice;
+                document.getElementById('orderAmountPaid').dispatchEvent(new Event('input'));
+            }
+        });
+        
+        ['orderTotalValue', 'orderAmountPaid'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                const total = parseFloat(document.getElementById('orderTotalValue').value) || 0;
+                const paid = parseFloat(document.getElementById('orderAmountPaid').value) || 0;
+                document.getElementById('orderRemaining').value = (total - paid).toFixed(2);
+            });
+        });
+
+        exportStockBtn.addEventListener('click', () => {
+            const dataToExport = allProducts.map(p => ({
+                'Produto': p.name, 'Marca': p.brand,
+                'Preco de Compra': formatCurrency(p.purchasePrice), 'Preco de Venda': formatCurrency(p.salePrice),
+                'Estoque': p.stock, 'Validade': formatDate(p.expiryDate)
+            }));
+            exportToCsv('estoque.csv', dataToExport);
+        });
+
+        exportClientsBtn.addEventListener('click', () => {
+            const dataToExport = allClients.map(c => ({
+                'Nome': c.name, 'Telefone': c.phone,
+                'Produto Adquirido': c.product, 'Valor Pago': formatCurrency(c.saleValue),
+                'Forma de Pagamento': c.paymentMethod, 'Endereco': c.address
+            }));
+            exportToCsv('clientes.csv', dataToExport);
+        });
+        
+        exportOrdersBtn.addEventListener('click', () => {
+             const dataToExport = allOrders.map(o => {
+                const total = parseFloat(o.totalValue) || 0;
+                const paid = parseFloat(o.amountPaid) || 0;
+                const remaining = total - paid;
+                const status = calculateOrderStatus(o);
+                return {
+                    'Cliente': o.clientName, 'Produto': o.productName,
+                    'Valor Total': formatCurrency(total), 'Valor Pago': formatCurrency(paid),
+                    'Restante': formatCurrency(remaining), 'Data do Pedido': formatDate(o.orderDate),
+                    'Vencimento': formatDate(o.dueDate), 'Status': status.text
+                };
+             });
+             exportToCsv('pedidos.csv', dataToExport);
+        });
+        
+        closeProductModalBtn.addEventListener('click', () => closeModal(productModal, productModalContent, productForm));
+        productModal.addEventListener('click', (e) => { if (e.target === productModal) closeModal(productModal, productModalContent, productForm); });
+        closeClientModalBtn.addEventListener('click', () => closeModal(clientModal, clientModalContent, clientForm));
+        clientModal.addEventListener('click', (e) => { if (e.target === clientModal) closeModal(clientModal, clientModalContent, clientForm); });
+        closeOrderModalBtn.addEventListener('click', () => closeModal(orderModal, orderModalContent, orderForm));
+        orderModal.addEventListener('click', (e) => { if (e.target === orderModal) closeModal(orderModal, orderModalContent, orderForm); });
+        closePaymentModalBtn.addEventListener('click', () => closeModal(paymentModal, paymentModalContent, paymentForm));
+        paymentModal.addEventListener('click', (e) => { if (e.target === paymentModal) closeModal(paymentModal, paymentModalContent, paymentForm); });
+        
+        confirmOk.addEventListener('click', handleConfirmClick);
+        confirmCancel.addEventListener('click', hideConfirmDialog);
+        confirmDialog.addEventListener('click', (e) => { if(e.target === confirmDialog) hideConfirmDialog(); });
+
+        productForm.addEventListener('submit', handleProductFormSubmit);
+        clientForm.addEventListener('submit', handleClientFormSubmit);
+        orderForm.addEventListener('submit', handleOrderFormSubmit);
+        paymentForm.addEventListener('submit', handlePaymentFormSubmit);
+
+        productsTableBody.addEventListener('click', handleTableClick);
+        clientsTableBody.addEventListener('click', handleTableClick);
+        ordersTableBody.addEventListener('click', handleTableClick);
+
+        searchInput.addEventListener('input', filterProducts);
+        clientSearchInput.addEventListener('input', filterClients);
+        orderSearchInput.addEventListener('input', filterOrders);
+        financeSearchInput.addEventListener('input', () => renderFinanceTransactions(allOrders, allProducts));
+        
+        exportFinanceBtn.addEventListener('click', () => {
+             const transactions = allOrders.map(order => {
+                const product = allProducts.find(p => p.id === order.productId);
+                const cost = product ? (parseFloat(product.purchasePrice) || 0) : 0;
+                const total = parseFloat(order.totalValue) || 0;
+                const profit = total - cost;
+                return {
+                    'Data': formatDate(order.orderDate), 'Cliente': order.clientName,
+                    'Produto': order.productName, 'Tipo': 'Venda',
+                    'Valor': formatCurrency(total), 'Custo': formatCurrency(cost),
+                    'Lucro': formatCurrency(profit)
+                };
+            });
+            exportToCsv('financeiro.csv', transactions);
+        });
+
+        // --- App Start ---
+        initialize();
+    </script>
+</body>
+</html>
+
